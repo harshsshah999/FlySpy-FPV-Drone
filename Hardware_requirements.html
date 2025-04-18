@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hardware Component Analysis (Table)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1000px;
+            margin: auto;
+        }
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #cccccc;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+            color: #333333;
+        }
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+    </style>
+</head>
+<body>
+    <h2>Hardware Component Functional Requirements</h2>
+    <table>
+        <tr>
+            <th>Hardware Component</th>
+            <th>Function / Purpose</th>
+            <th>Requirement Justification</th>
+        </tr>
+        <tr>
+            <td>Flight Controller (SpeedyBee F405 AIO)</td>
+            <td>Central processing unit for flight control and ESC management.</td>
+            <td>Supports Betaflight; integrated ESC saves space and weight; suitable for FPV and experimentation.</td>
+        </tr>
+        <tr>
+            <td>Electronic Speed Controller (ESC)</td>
+            <td>Controls the power delivered to motors.</td>
+            <td>Integrated in FC; must handle up to 35A for high-performance motors.</td>
+        </tr>
+        <tr>
+            <td>Motors (Xing E Pro 2207 2750KV ×4)</td>
+            <td>Provide thrust and maneuverability for flight.</td>
+            <td>High KV rating for responsive FPV control; compatible with 5” propellers.</td>
+        </tr>
+        <tr>
+            <td>Frame (FlyFishRC Volador II VX5 T700)</td>
+            <td>Houses and protects all components; affects weight and stability.</td>
+            <td>Lightweight carbon fiber; optimized layout for freestyle and FPV setups.</td>
+        </tr>
+        <tr>
+            <td>Propellers (51477 & Ethix S4 PC)</td>
+            <td>Convert motor spin into lift and thrust.</td>
+            <td>Chosen for 5-inch frames; mix of efficiency and control; supports smooth flight.</td>
+        </tr>
+        <tr>
+            <td>FPV Camera (Caddx Ratel Pro)</td>
+            <td>Captures real-time video for pilot or AI vision input.</td>
+            <td>High-quality image with low-light capability; ideal for both FPV and object detection.</td>
+        </tr>
+        <tr>
+            <td>Video Transmitter (SpeedyBee TX800)</td>
+            <td>Sends FPV camera signal to goggles.</td>
+            <td>Reliable video range; adjustable power output; Betaflight-compatible.</td>
+        </tr>
+        <tr>
+            <td>Receiver (Radiomaster RP1 ELRS)</td>
+            <td>Receives commands from the remote controller.</td>
+            <td>Low latency and long range; compatible with ELRS protocol.</td>
+        </tr>
+        <tr>
+            <td>Remote Controller (Radiomaster Pocket)</td>
+            <td>Manual pilot control input.</td>
+            <td>Compact, full-featured, open-source firmware; supports ELRS.</td>
+        </tr>
+        <tr>
+            <td>FPV Goggles (Skyzone Cobra X V4)</td>
+            <td>Display live FPV video to the pilot.</td>
+            <td>High-resolution screen with DVR; supports analog video.</td>
+        </tr>
+        <tr>
+            <td>Main Battery (Tattu R-Line 650mAh 4S 95C)</td>
+            <td>Provides power to motors and FC.</td>
+            <td>High discharge rate needed for powerful motors and responsive control.</td>
+        </tr>
+        <tr>
+            <td>Accessory Batteries (NCR 400mAh)</td>
+            <td>Powers SBC and peripheral components.</td>
+            <td>Separate power source for stability and system reliability.</td>
+        </tr>
+        <tr>
+            <td>Smoke Stopper (TBS Avionics)</td>
+            <td>Protects components from short circuits during testing.</td>
+            <td>Reduces risk of damage during initial power-ups and troubleshooting.</td>
+        </tr>
+    </table>
+</body>
+</html>
