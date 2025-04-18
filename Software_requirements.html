@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Software Component Functional Requirements</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+    h2 {
+      color: #2c3e50;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #cccccc;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #f4f4f4;
+      color: #333333;
+    }
+    tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <h2>Software Component Functional Requirements</h2>
+  <table>
+    <tr>
+      <th>Software Component</th>
+      <th>Function / Purpose</th>
+      <th>Requirement Justification</th>
+    </tr>
+    <tr>
+      <td>Flight Stack (Betaflight / PX4 / ArduPilot)</td>
+      <td>Handles flight stabilization, motor control, telemetry.</td>
+      <td>Betaflight is ideal for FPV/manual control; PX4 or ArduPilot is required if full autonomy and GPS-based autopilot are needed.</td>
+    </tr>
+    <tr>
+      <td>Ground Control Station (QGroundControl)</td>
+      <td>Used for mission planning, telemetry monitoring, and parameter tuning.</td>
+      <td>Essential if PX4 or ArduPilot is used; not needed for Betaflight-based manual flight configurations.</td>
+    </tr>
+    <tr>
+      <td>Operating System (Raspberry Pi OS / Ubuntu)</td>
+      <td>Provides the software environment for running AI and control tasks on the SBC.</td>
+      <td>Linux-based OS required for compatibility with most open-source AI and robotics frameworks.</td>
+    </tr>
+    <tr>
+      <td>AI Framework (e.g., YOLOv5, TensorFlow Lite)</td>
+      <td>Performs object detection and inference tasks in real time.</td>
+      <td>Chosen for lightweight and real-time performance on edge devices with AI accelerators.</td>
+    </tr>
+    <tr>
+      <td>Telemetry / Logging Software</td>
