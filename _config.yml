@@ -1,1 +1,13 @@
-theme: jekyll-theme-architect
+title: FlySpy-FPV-Drone
+theme: minima
+plugins:
+  - jekyll-feeds
+
+# Define nav items pointing at anchors on the same page
+navbar:
+  - title: Home;           url: /#home
+  - title: Getting Started; url: /#getting-started
+  - title: Archive;        url: /#archive
+  - title: Build Logs;     url: /#build-logs
+  - title: Resources;      url: /#resources
+  - title: About;          url: /#about
