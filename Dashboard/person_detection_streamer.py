@@ -6,7 +6,6 @@ with improved tracking to handle drone footage and moving cameras.
 '''  
 import cv2
 import numpy as np
-import argparse
 from collections import deque
 import math
 
@@ -109,113 +108,8 @@ class PersonTracker:
         
         return new_people
 
-# Parse command line arguments
-parser = argparse.ArgumentParser(description='Person Detection Streamer')
-parser.add_argument('--video', type=str, default='0',
-                    help='Path to video file. Use 0 for webcam (default: 0)')
-parser.add_argument('--confidence', type=float, default=0.2,
-                    help='Minimum confidence threshold (default: 0.2)')
-parser.add_argument('--skip-frames', type=int, default=2,
-                    help='Number of frames to skip between detections (default: 2)')
-args = parser.parse_args()
-
-# Paths to the model files
-PROTOTXT_PATH = "MobileNetSSD_deploy.prototxt"
-MODEL_PATH = "MobileNetSSD_deploy.caffemodel"
-
-# Load the Caffe model
-net = cv2.dnn.readNetFromCaffe(PROTOTXT_PATH, MODEL_PATH)
-
-# Class labels in the MobileNet-SSD model
+# Only define the class and its methods, remove the execution code
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
            "bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
            "dog", "horse", "motorbike", "person", "pottedplant",
            "sheep", "sofa", "train", "tvmonitor"]
-
-# Initialize video capture and tracker
-VIDEO_SOURCE = 0 if args.video == '0' else args.video
-CONFIDENCE_THRESHOLD = args.confidence
-
-cap = cv2.VideoCapture(VIDEO_SOURCE)
-if not cap.isOpened():
-    print(f"Error: Unable to open video source {VIDEO_SOURCE}")
-    exit(1)
-
-tracker = PersonTracker(memory_frames=15, max_distance=100)  # Reduced memory frames
-total_unique_people = 0
-frame_count = 0
-skip_frames = args.skip_frames
-
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-
-    frame_count += 1
-
-    # Process only every nth frame
-    if frame_count % skip_frames != 0:
-        continue
-
-    # Reduce frame size for faster processing
-    frame = cv2.resize(frame, (0, 0), fx=0.75, fy=0.75)
-    (h, w) = frame.shape[:2]
-
-    # Detect people in the current frame
-    blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)),
-                                0.007843, (300, 300), 127.5)
-    net.setInput(blob)
-    detections = net.forward()
-
-    boxes = []
-    confidences = []
-    
-    for i in range(detections.shape[2]):
-        confidence = detections[0, 0, i, 2]
-        if confidence > CONFIDENCE_THRESHOLD:
-            idx = int(detections[0, 0, i, 1])
-            if CLASSES[idx] == "person":
-                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-                boxes.append(box.astype("int"))
-                confidences.append(confidence)
-
-    new_people = tracker.update(boxes, confidences)
-    total_unique_people += new_people
-
-    # Draw boxes and labels (only for active tracks)
-    for track_id, track in tracker.tracks.items():
-        if track['missing_frames'] > 0:
-            continue
-            
-        box = track['box']
-        confidence = track['confidence']
-        
-        cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2)
-        
-        label = f"ID {track_id}: {confidence*100:.1f}%"
-        y = box[1] - 15 if box[1] - 15 > 15 else box[1] + 15
-        cv2.putText(frame, label, (box[0], y),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        
-        # Draw shorter trajectories
-        positions = list(track['positions'])[-5:]  # Only show last 5 positions
-        for i in range(1, len(positions)):
-            cv2.line(frame, positions[i-1], positions[i], (0, 255, 0), 1)
-
-    # Update display
-    cv2.putText(frame, f"Active Tracks: {len(tracker.tracks)}", (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
-    cv2.putText(frame, f"Total Unique People: {total_unique_people}", (10, 70),
-                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
-    cv2.putText(frame, f"Frames: {frame_count}", (10, 110),
-                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
-
-    cv2.imshow("Person Detection Streamer", frame)
-    
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord('q'):
-        break
-
-# Cleanup
-cap.release()
-cv2.destroyAllWindows()
