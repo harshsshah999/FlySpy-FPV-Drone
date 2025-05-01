@@ -2,64 +2,244 @@
 <html>
 <head>
     <title>Person Detection Stream</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
     <script>
-        function validateFileSize() {
-            const fileInput = document.querySelector('input[type="file"]');
-            const maxSize = 500 * 1024 * 1024; // 500MB in bytes
-            
-            if (fileInput.files[0].size > maxSize) {
-                alert('File size exceeds 500MB limit');
-                fileInput.value = '';
-                return false;
+        function updateMap(lat, lon) {
+            if (!window.map) {
+              // 1) create the map
+              window.map = L.map('map', {
+                center: [50.1231, 8.6874],  // Frankfurt UAS
+                zoom: 18,
+                zoomControl: false,
+                attributionControl: false
+              });
+        
+              // 2) dark-mode CartoDB tiles (official URL!)
+              L.tileLayer(
+                'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
+                { subdomains: ['a','b','c','d'], maxZoom: 19 }
+              ).addTo(window.map);
+        
+              // 3) once map finishes loading its tiles, fix container sizing
+              window.map.once('load', () => window.map.invalidateSize());
+        
+              // 4) add your moving marker
+              window.droneMarker = L.circleMarker([lat, lon], {
+                radius: 8,
+                color: '#00ff88',
+                fillColor: '#00ff88',
+                fillOpacity: 0.9
+              }).addTo(window.map);
+        
+            } else {
+              // update existing marker
+              window.droneMarker.setLatLng([lat, lon]);
+              window.map.panTo([lat, lon]);
             }
-            return true;
+          }
+        
+      
+        function updateCompass(heading) {
+          const img = document.getElementById('compass-img');
+          if (img) img.style.transform = `rotate(${heading}deg)`;
         }
-    </script>
+      
+        window.addEventListener('load', () => {
+          setInterval(() => {
+            const lat = 50.1231 + (Math.random() - 0.5) * 0.0002;
+            const lon = 8.6874 + (Math.random() - 0.5) * 0.0002;
+            const heading = Math.floor(Math.random() * 360);
+            updateMap(lat, lon);
+            updateCompass(heading);
+          }, 2000);
+        });
+      </script>
+    
+
     <style>
         body {
-            font-family: sans-serif;
-            text-align: center;
-            background: #fafafa;
-            padding: 20px;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #111;
+            color: #eee;
         }
-        .upload-container {
-            margin: 20px auto;
+
+        .dashboard {
+            display: flex;
+            flex-direction: row;
+            height: 100vh;
             padding: 20px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            width: 400px;
+            gap: 20px;
         }
-        .upload-info {
-            color: #666;
-            font-size: 0.9em;
+
+        .left-sidebar {
+            width: 60px;
+            background-color: #1a1a1a;
+            border-radius: 12px;
+            padding: 10px 0;
+        }
+
+        .main-view {
+            flex: 2;
+            background-color: #222;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .video-frame {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #333;
+            width: 100%;
+            height: 480px;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .bottom-section {
+            display: flex;
+            gap: 20px;
             margin-top: 10px;
         }
-        .video-container {
-            margin-top: 30px;
+
+        .compass-box, .map-box {
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 10px;
         }
-        img {
-            border: 3px solid #333;
-            border-radius: 10px;
-            width: 720px;
-            height: 480px;
+
+        .compass-box {
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #compass-img {
+            width: 150px;
+            transition: transform 0.2s ease;
+        }
+
+        .map-box {
+            flex: 1;
+            height: 220px;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+
+        .right-panel {
+            width: 300px;
+            background-color: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-box {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .form-box input[type="file"] {
+            color: #ddd;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .panel-section {
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        h1, h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.2em;
+        }
+
+        .upload-info {
+            color: #aaa;
+            font-size: 0.8em;
         }
     </style>
 </head>
 <body>
-    <h1>Person Detection Stream</h1>
-    <div class="upload-container">
-        <form class="upload-form" action="/upload_video" method="post" enctype="multipart/form-data" onsubmit="return validateFileSize()">
-            <input type="file" name="video" accept="video/*" required>
-            <button type="submit">Upload Video</button>
-        </form>
-        <p class="upload-info">Maximum file size: 500MB</p>
-    </div>
+    <div class="dashboard">
+        <div class="left-sidebar">
+            <!-- Placeholder for side icons -->
+        </div>
 
-    {% if video_path %}
-    <div class="video-container">
-        <h2>Streaming Detection Output</h2>
-        <img src="{{ url_for('video_feed') + '?video_path=' + video_path }}" alt="Video Stream">
+        <div class="main-view">
+            <h1>Person Detection Stream</h1>
+            <div class="video-frame">
+                {% if video_path %}
+                    <img src="{{ url_for('video_feed') + '?video_path=' + video_path }}" alt="Video Stream" width="720" height="480">
+                {% else %}
+                    <p>Video feed will appear here after upload.</p>
+                {% endif %}
+            </div>
+
+            <div class="bottom-section">
+                <div class="compass-box">
+                    <h2>Orientation</h2>
+                    <img src="/static/compass.png" id="compass-img" alt="Compass">
+                </div>
+                <div class="map-box">
+                    <h2>Live Position</h2>
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="form-box">
+                <form action="/upload_video" method="post" enctype="multipart/form-data" onsubmit="return validateFileSize()">
+                    <input type="file" name="video" accept="video/*" required>
+                    <button type="submit">Upload Video</button>
+                    <p class="upload-info">Max file size: 500MB</p>
+                </form>
+            </div>
+
+            <div class="panel-section">
+                <h2>Drone Info</h2>
+                <p>DJI Mavic Pro</p>
+                <p>Battery: 77%</p>
+                <p>Altitude: 35m</p>
+                <p>Speed: 20km/h</p>
+            </div>
+
+            <div class="panel-section">
+                <h2>Telemetry</h2>
+                <p>GPS: Locked</p>
+                <p>Mode: GPS</p>
+                <p>Signal: Strong</p>
+            </div>
+        </div>
     </div>
-    {% endif %}
 </body>
 </html>
