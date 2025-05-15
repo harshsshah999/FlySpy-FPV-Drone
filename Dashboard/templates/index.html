@@ -197,10 +197,12 @@
         <div class="main-view">
             <h1>Person Detection Stream</h1>
             <div class="video-frame">
-                {% if video_path %}
-                    <img src="{{ url_for('video_feed') + '?video_path=' + video_path }}" alt="Video Stream" width="720" height="480">
+                {% if video_path or request.args.get('live') %}
+                    <img 
+                        src="{{ url_for('video_feed') }}{% if video_path %}?video_path={{ video_path }}{% endif %}" 
+                        alt="Video Stream" width="720" height="480">
                 {% else %}
-                    <p>Video feed will appear here after upload.</p>
+                    <p style="color:#555;">Video feed will appear here after upload or live start.</p>
                 {% endif %}
             </div>
 
@@ -223,6 +225,9 @@
                     <button type="submit">Upload Video</button>
                     <p class="upload-info">Max file size: 500MB</p>
                 </form>
+                <form action="/" method="get">
+                    <button type="submit" name="live" value="1">Start Live Camera</button>
+                </form>
             </div>
 
             <div class="panel-section">
@@ -230,7 +235,7 @@
                 <p>DJI Mavic Pro</p>
                 <p>Battery: 77%</p>
                 <p>Altitude: 35m</p>
-                <p>Speed: 20km/h</p>
+                <p>Speed: 20 km/h</p>
             </div>
 
             <div class="panel-section">
