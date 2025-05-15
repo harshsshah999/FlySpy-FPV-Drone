@@ -1,7 +1,7 @@
 title: FlySpy-FPV-Drone
 theme: minima
 plugins:
-  - jekyll-feeds
+  - jekyll-feed
 
 # Define nav items pointing at anchors on the same page
 navbar:
