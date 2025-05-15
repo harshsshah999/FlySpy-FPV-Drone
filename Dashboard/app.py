@@ -28,7 +28,7 @@ except cv2.error as e:
     raise Exception(f"Error loading model: {str(e)}")
 
 # Adjust these parameters for better tracking
-CONFIDENCE_THRESHOLD = 0.5  # Increased from 0.2 for more reliable detections
+CONFIDENCE_THRESHOLD = 0.01  # Increased from 0.2 for more reliable detections
 SKIP_FRAMES = 1  # Reduced from 2 to track more frames
 tracker = PersonTracker(memory_frames=30, max_distance=150)  # Increased memory and distance
 
