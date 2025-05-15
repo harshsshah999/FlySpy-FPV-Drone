@@ -1,3 +1,4 @@
+<a name="home"></a>
 # FlySpy-FPV-Drone  
 
 **Mission:** Document a turnkey FPV-AI drone platform—hardware, firmware, video capture, and real-time vision—so anyone can reproduce or extend it.
@@ -48,3 +49,6 @@ A reproducible, open-source FPV-AI drone platform. Below is a reference build fo
    python3 -m venv v; source v/bin/activate
    pip install ultralytics opencv-python
    python yolov5_realtime.py
+```
+
+<!-- Custom footer: intentionally left blank -->
