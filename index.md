@@ -1,12 +1,3 @@
-# TEST TEXT
-
----
-layout: page
-title: FlySpy-FPV-Drone
-permalink: /
----
-
-<a name="home"></a>
 # FlySpy-FPV-Drone  
 
 **Mission:** Document a turnkey FPV-AI drone platform—hardware, firmware, video capture, and real-time vision—so anyone can reproduce or extend it.
