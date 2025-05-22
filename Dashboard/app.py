@@ -33,17 +33,34 @@ SKIP_FRAMES = 1  # Reduced from 2 to track more frames
 tracker = PersonTracker(memory_frames=30, max_distance=150)  # Increased memory and distance
 
 def generate_frames(video_path=None):
+    print(f"[DEBUG] Starting generate_frames with video_path: {video_path}")
     if video_path:
+        print(f"[DEBUG] Opening video file: {video_path}")
         cap = cv2.VideoCapture(video_path)
     else:
+        print("[DEBUG] Attempting to open USB camera")
         # Try different camera indices
         for camera_index in [0, 1]:
+            print(f"[DEBUG] Trying camera index: {camera_index}")
             cap = cv2.VideoCapture(camera_index)
             if cap.isOpened():
+                print(f"[DEBUG] Successfully opened camera index: {camera_index}")
                 break
+        
+        if not cap.isOpened():
+            print("[DEBUG] Failed to open any camera")
+            # Return a default frame or error message
+            while True:
+                frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                cv2.putText(frame, "No USB camera found", (50, 240),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
+                ret, buffer = cv2.imencode('.jpg', frame)
+                frame = buffer.tobytes()
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
     
     if not cap.isOpened():
-        print("Error: Could not open video source")
+        print("[DEBUG] Video source not opened")
         # Return a default frame or error message
         while True:
             frame = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -61,6 +78,7 @@ def generate_frames(video_path=None):
         while True:
             ret, frame = cap.read()
             if not ret:
+                print("[DEBUG] Failed to read frame")
                 break
             
             frame_count += 1
@@ -80,7 +98,7 @@ def generate_frames(video_path=None):
             )
             net.setInput(blob)
             detections = net.forward()
-            print("[DEBUG] raw detections:", detections.shape[2])  # ← debug print
+            print(f"[DEBUG] Frame {frame_count}: {detections.shape[2]} detections")
 
             boxes = []
             confidences = []
@@ -149,6 +167,12 @@ def generate_frames(video_path=None):
     finally:
         cap.release()
 
+@app.route('/start_stream')
+def start_stream():
+    print("[DEBUG] Start stream route called")
+    return render_template('index.html', video_path=None)
+
+
 @app.route('/upload_video', methods=['POST'])
 def upload_video():
     if 'video' not in request.files:
@@ -169,15 +193,34 @@ def upload_video():
 
 @app.route('/video_feed')
 def video_feed():
+    print("[DEBUG] Video feed route called")
     video_path = request.args.get('video_path')
-    return Response(generate_frames(video_path),
+    print(f"[DEBUG] Video path from request: {video_path}")
+    return Response(generate_frames(video_path if video_path else None),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
+
 
 @app.route('/')
 def index():
     video_path = request.args.get('video_path')
     return render_template('index.html', video_path=video_path)
 
+@app.route('/list_cameras')
+def list_cameras():
+    available_cameras = []
+    for i in range(10):
+        cap = cv2.VideoCapture(i)
+        if cap.isOpened():
+            ret, _ = cap.read()
+            if ret:
+                available_cameras.append({
+                    'index': i,
+                    'name': f'Camera {i}',
+                    'status': 'Available'
+                })
+            cap.release()
+    
+    return {'cameras': available_cameras}
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000, debug=False)
+    app.run(host='0.0.0.0', port=8001, debug=False)

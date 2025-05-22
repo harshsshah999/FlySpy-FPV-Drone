@@ -7,41 +7,29 @@
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
     <script>
-        function updateMap(lat, lon) {
-            if (!window.map) {
-              // 1) create the map
-              window.map = L.map('map', {
-                center: [50.1231, 8.6874],  // Frankfurt UAS
+        function showStaticMap() {
+            const lat = 50.1231;
+            const lon = 8.6874;
+            window.map = L.map('map', {
+                center: [lat, lon],
                 zoom: 18,
                 zoomControl: false,
                 attributionControl: false
-              });
-        
-              // 2) dark-mode CartoDB tiles (official URL!)
-              L.tileLayer(
+            });
+            L.tileLayer(
                 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
                 { subdomains: ['a','b','c','d'], maxZoom: 19 }
-              ).addTo(window.map);
-        
-              // 3) once map finishes loading its tiles, fix container sizing
-              window.map.once('load', () => window.map.invalidateSize());
-        
-              // 4) add your moving marker
-              window.droneMarker = L.circleMarker([lat, lon], {
+            ).addTo(window.map);
+            window.map.once('load', () => window.map.invalidateSize());
+            window.droneMarker = L.circleMarker([lat, lon], {
                 radius: 8,
                 color: '#00ff88',
                 fillColor: '#00ff88',
                 fillOpacity: 0.9
-              }).addTo(window.map);
-        
-            } else {
-              // update existing marker
-              window.droneMarker.setLatLng([lat, lon]);
-              window.map.panTo([lat, lon]);
-            }
-          }
-        
-      
+            }).addTo(window.map);
+        }
+        window.addEventListener('load', showStaticMap);
+
         function updateCompass(heading) {
           const img = document.getElementById('compass-img');
           if (img) img.style.transform = `rotate(${heading}deg)`;
@@ -56,7 +44,37 @@
             updateCompass(heading);
           }, 2000);
         });
-      </script>
+
+        async function startUSBStream() {
+            const btn = document.getElementById('usbStreamBtn');
+            const status = document.getElementById('cameraStatus');
+            const videoFrame = document.querySelector('.video-frame');
+            
+            try {
+                btn.disabled = true;
+                status.textContent = 'Checking cameras...';
+                
+                // Check available cameras
+                const response = await fetch('/list_cameras');
+                const data = await response.json();
+                
+                if (data.cameras.length === 0) {
+                    status.textContent = 'No cameras found!';
+                    return;
+                }
+                
+                status.textContent = `Found ${data.cameras.length} camera(s)`;
+                
+                // Update the video frame to show the stream
+                videoFrame.innerHTML = '<img src="/video_feed" alt="Video Stream" width="720" height="480">';
+                
+            } catch (error) {
+                status.textContent = 'Error: ' + error.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
     
 
     <style>
@@ -223,6 +241,10 @@
                     <button type="submit">Upload Video</button>
                     <p class="upload-info">Max file size: 500MB</p>
                 </form>
+                <div style="margin-top: 10px;">
+                    <button onclick="startUSBStream()" id="usbStreamBtn">Start USB Stream</button>
+                    <div id="cameraStatus" style="margin-top: 5px; font-size: 0.8em; color: #aaa;"></div>
+                </div>
             </div>
 
             <div class="panel-section">
