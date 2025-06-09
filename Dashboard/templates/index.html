@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 
     <script>
         function showStaticMap() {
@@ -74,6 +75,123 @@
                 btn.disabled = false;
             }
         }
+
+        let socket = null;
+        let selectedDevice = null;
+
+        function connectSocket() {
+            socket = io();
+            
+            socket.on('connect', function() {
+                console.log('Connected to server');
+            });
+            
+            socket.on('disconnect', function() {
+                console.log('Disconnected from server');
+            });
+            
+            socket.on('telemetry', function(data) {
+                updateTelemetry(data);
+            });
+            
+            socket.on('ble_status', function(data) {
+                const bleStatus = document.getElementById('bleStatus');
+                bleStatus.textContent = data.status;
+                if (data.error) {
+                    bleStatus.textContent += `: ${data.error}`;
+                }
+            });
+        }
+
+        function updateTelemetry(data) {
+            if (data.gps) {
+                document.getElementById('gpsStatus').textContent = data.gps.fix === 2 ? '3D Fix' : 'No Fix';
+                document.getElementById('latitude').textContent = (data.gps.lat / 1e7).toFixed(6);
+                document.getElementById('longitude').textContent = (data.gps.lon / 1e7).toFixed(6);
+                document.getElementById('altitude').textContent = `${data.gps.alt} m`;
+                document.getElementById('speed').textContent = `${data.gps.speed} cm/s`;
+                document.getElementById('course').textContent = `${data.gps.course / 10}°`;
+                document.getElementById('satellites').textContent = data.gps.sats;
+                
+                // Update map if coordinates are valid
+                if (data.gps.lat && data.gps.lon) {
+                    updateMap(data.gps.lat / 1e7, data.gps.lon / 1e7);
+                }
+            }
+            
+            if (data.attitude) {
+                document.getElementById('roll').textContent = `${data.attitude.roll / 10}°`;
+                document.getElementById('pitch').textContent = `${data.attitude.pitch / 10}°`;
+                document.getElementById('yaw').textContent = `${data.attitude.yaw / 10}°`;
+                updateCompass(data.attitude.yaw / 10);
+            }
+        }
+
+        async function scanDevices() {
+            const scanBtn = document.getElementById('scanBtn');
+            const deviceList = document.getElementById('deviceList');
+            const bleStatus = document.getElementById('bleStatus');
+            
+            scanBtn.disabled = true;
+            deviceList.innerHTML = '<div style="color: #aaa;">Scanning...</div>';
+            
+            try {
+                const response = await fetch('/scan_devices');
+                const devices = await response.json();
+                
+                deviceList.innerHTML = '';
+                if (devices.length === 0) {
+                    deviceList.innerHTML = '<div style="color: #aaa;">No devices found</div>';
+                    return;
+                }
+                
+                devices.forEach(device => {
+                    const div = document.createElement('div');
+                    div.className = 'device-item';
+                    div.textContent = `${device.name || 'Unknown'} (${device.address})`;
+                    div.onclick = () => connectDevice(device.address);
+                    deviceList.appendChild(div);
+                });
+            } catch (error) {
+                deviceList.innerHTML = `<div style="color: #ff4444;">Error: ${error.message}</div>`;
+            } finally {
+                scanBtn.disabled = false;
+            }
+        }
+
+        async function connectDevice(address) {
+            const bleStatus = document.getElementById('bleStatus');
+            const deviceItems = document.querySelectorAll('.device-item');
+            
+            deviceItems.forEach(item => item.classList.remove('selected'));
+            event.target.classList.add('selected');
+            
+            bleStatus.textContent = 'Connecting...';
+            
+            try {
+                const response = await fetch('/connect_device', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({address})
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    bleStatus.textContent = 'Connected';
+                    selectedDevice = address;
+                } else {
+                    bleStatus.textContent = `Connection failed: ${result.error}`;
+                }
+            } catch (error) {
+                bleStatus.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Initialize Socket.IO connection when page loads
+        window.addEventListener('load', () => {
+            connectSocket();
+            // ... existing load event handlers ...
+        });
     </script>
     
 
@@ -204,6 +322,42 @@
             color: #aaa;
             font-size: 0.8em;
         }
+
+        .telemetry-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 3px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .telemetry-row .label {
+            color: #888;
+        }
+        
+        #deviceList {
+            background: #1a1a1a;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        
+        .device-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #2a2a2a;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .device-item:hover {
+            background: #3a3a3a;
+        }
+        
+        .device-item.selected {
+            background: #007bff;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -248,18 +402,58 @@
             </div>
 
             <div class="panel-section">
-                <h2>Drone Info</h2>
-                <p>DJI Mavic Pro</p>
-                <p>Battery: 77%</p>
-                <p>Altitude: 35m</p>
-                <p>Speed: 20km/h</p>
+                <h2>BLE Device Connection</h2>
+                <div id="bleStatus" style="margin-bottom: 10px; color: #aaa;">Not connected</div>
+                <button onclick="scanDevices()" id="scanBtn">Scan for Devices</button>
+                <div id="deviceList" style="margin-top: 10px; max-height: 150px; overflow-y: auto;">
+                    <!-- Device list will be populated here -->
+                </div>
             </div>
 
             <div class="panel-section">
-                <h2>Telemetry</h2>
-                <p>GPS: Locked</p>
-                <p>Mode: GPS</p>
-                <p>Signal: Strong</p>
+                <h2>Drone Telemetry</h2>
+                <div id="telemetryData" style="font-family: monospace;">
+                    <div class="telemetry-row">
+                        <span class="label">GPS:</span>
+                        <span id="gpsStatus">Not available</span>
+                    </div>
+                    <div class="telemetry-row">
+                        <span class="label">Latitude:</span>
+                        <span id="latitude">--</span>
+                    </div>
+                    <div class="telemetry-row">
+                        <span class="label">Longitude:</span>
+                        <span id="longitude">--</span>
+                    </div>
+                    <div class="telemetry-row">
+                        <span class="label">Altitude:</span>
+                        <span id="altitude">--</span>
+                    </div>
+                    <div class="telemetry-row">
+                        <span class="label">Speed:</span>
+                        <span id="speed">--</span>
+                    </div>
+                    <div class="telemetry-row">
+                        <span class="label">Course:</span>
+                        <span id="course">--</span>
+                    </div>
+                    <div class="telemetry-row">
+                        <span class="label">Satellites:</span>
+                        <span id="satellites">--</span>
+                    </div>
+                    <div class="telemetry-row">
+                        <span class="label">Roll:</span>
+                        <span id="roll">--</span>
+                    </div>
+                    <div class="telemetry-row">
+                        <span class="label">Pitch:</span>
+                        <span id="pitch">--</span>
+                    </div>
+                    <div class="telemetry-row">
+                        <span class="label">Yaw:</span>
+                        <span id="yaw">--</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

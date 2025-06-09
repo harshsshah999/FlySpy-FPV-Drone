@@ -20,31 +20,32 @@ def create_msp_request(cmd_id: int) -> bytes:
 def parse_msp_gps(payload: bytes):
     if len(payload) != 18:
         print(f"⚠️ GPS payload length mismatch: {len(payload)}")
-        return
+        return None
 
     lat, lon, alt, speed, course, sats, fix, extra1, extra2 = struct.unpack("<llhhhBBBB", payload)
     
-    print(f"\nRaw payload: {payload.hex()}")  # Debug: Print raw payload
-    print("\n✅ GPS Data:")
-    print(f"  Latitude:   {lat / 1e7} (raw: {lat})")
-    print(f"  Longitude:  {lon / 1e7} (raw: {lon})")
-    print(f"  Altitude:   {alt} m")
-    print(f"  Speed:      {speed} cm/s")
-    print(f"  Course:     {course / 10}°")
-    print(f"  Satellites: {sats}")
-    print(f"  Fix Type:   {'3D' if fix == 2 else 'None'} (raw: {fix})")
+    return {
+        'lat': lat,
+        'lon': lon,
+        'alt': alt,
+        'speed': speed,
+        'course': course,
+        'sats': sats,
+        'fix': fix
+    }
 
 def parse_msp_attitude(payload: bytes):
     if len(payload) != 6:
         print(f"⚠️ ATTITUDE payload length mismatch: {len(payload)}")
-        return
+        return None
 
     roll, pitch, yaw = struct.unpack("<hhh", payload)
 
-    print("\n🧭 Attitude Data:")
-    print(f"  Roll:   {roll / 10}°")
-    print(f"  Pitch:  {pitch / 10}°")
-    print(f"  Yaw:    {yaw / 10}°")
+    return {
+        'roll': roll,
+        'pitch': pitch,
+        'yaw': yaw
+    }
 
 def notification_handler(sender, data):
     print(f"Raw data received: {data.hex()}")  # Debug: Print raw data
@@ -105,18 +106,7 @@ async def discover_devices():
         name = device.name or "Unknown"
         print(f"{idx}. {name} ({device.address})")
     
-    while True:
-        try:
-            choice = input("\nSelect device number (or 'q' to quit): ")
-            if choice.lower() == 'q':
-                return None
-            choice = int(choice)
-            if 1 <= choice <= len(devices):
-                return devices[choice - 1].address
-        except ValueError:
-            print("Please enter a valid number")
-    
-    return None
+    return devices
 
 async def main():
     device_address = await discover_devices()

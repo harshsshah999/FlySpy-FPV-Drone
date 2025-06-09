@@ -1,10 +1,18 @@
-from flask import Flask, Response, render_template, request, redirect, url_for
+import eventlet
+eventlet.monkey_patch()
+
+from flask import Flask, Response, render_template, request, redirect, url_for, jsonify
+from flask_socketio import SocketIO, emit
 import cv2
 import numpy as np
 import os
+import asyncio
+import json
 from person_detection_streamer import PersonTracker, CLASSES
+from receiving_drone_data import BleakClient, BleakScanner, create_msp_request, parse_msp_gps, parse_msp_attitude
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 # Increase maximum file size to 500MB
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
@@ -31,6 +39,14 @@ except cv2.error as e:
 CONFIDENCE_THRESHOLD = 0.01  # Increased from 0.2 for more reliable detections
 SKIP_FRAMES = 1  # Reduced from 2 to track more frames
 tracker = PersonTracker(memory_frames=30, max_distance=150)  # Increased memory and distance
+
+# BLE device management
+ble_client = None
+ble_task = None
+WRITE_CHAR_UUID = "0000abf1-0000-1000-8000-00805f9b34fb"
+NOTIFY_CHAR_UUID = "0000abf2-0000-1000-8000-00805f9b34fb"
+MSP_GPS = 106
+MSP_ATTITUDE = 108
 
 def generate_frames(video_path=None):
     print(f"[DEBUG] Starting generate_frames with video_path: {video_path}")
@@ -218,9 +234,115 @@ def list_cameras():
                     'name': f'Camera {i}',
                     'status': 'Available'
                 })
-            cap.release()
-    
+            cap.release() 
     return {'cameras': available_cameras}
 
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+    emit('connection_response', {'data': 'Connected'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
+
+def notification_handler(sender, data):
+    if not data.startswith(b"$M>"):
+        return
+
+    size = data[3]
+    cmd = data[4]
+    payload = data[5:5 + size]
+    checksum = data[5 + size] if len(data) > 5 + size else None
+
+    calc_checksum = size ^ cmd
+    for b in payload:
+        calc_checksum ^= b
+
+    if checksum != calc_checksum:
+        return
+
+    try:
+        if cmd == MSP_GPS:
+            gps_data = parse_msp_gps(payload)
+            if gps_data:
+                socketio.emit('telemetry', {'gps': gps_data})
+        elif cmd == MSP_ATTITUDE:
+            attitude_data = parse_msp_attitude(payload)
+            if attitude_data:
+                socketio.emit('telemetry', {'attitude': attitude_data})
+    except Exception as e:
+        print(f"Error processing data: {e}")
+
+async def poll_ble_device(client):
+    try:
+        while True:
+            await client.write_gatt_char(WRITE_CHAR_UUID, create_msp_request(MSP_GPS))
+            await client.write_gatt_char(WRITE_CHAR_UUID, create_msp_request(MSP_ATTITUDE))
+            await asyncio.sleep(1)
+    except Exception as e:
+        print(f"Error in poll loop: {e}")
+        socketio.emit('ble_status', {'status': 'disconnected', 'error': str(e)})
+
+@app.route('/scan_devices')
+async def scan_devices():
+    try:
+        loop = asyncio.get_event_loop()
+        devices = await loop.create_task(BleakScanner.discover())
+        return jsonify([{
+            'name': device.name or 'Unknown',
+            'address': device.address
+        } for device in devices])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/connect_device', methods=['POST'])
+async def connect_device():
+    global ble_client, ble_task
+    
+    try:
+        data = request.get_json()
+        address = data.get('address')
+        
+        if not address:
+            return jsonify({'success': False, 'error': 'No address provided'})
+        
+        # Disconnect existing client if any
+        if ble_client:
+            await ble_client.disconnect()
+            if ble_task:
+                ble_task.cancel()
+        
+        # Connect to new device
+        loop = asyncio.get_event_loop()
+        ble_client = BleakClient(address)
+        await loop.create_task(ble_client.connect())
+        await loop.create_task(ble_client.start_notify(NOTIFY_CHAR_UUID, notification_handler))
+        
+        # Start polling task
+        ble_task = loop.create_task(poll_ble_device(ble_client))
+        
+        socketio.emit('ble_status', {'status': 'connected'})
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/disconnect_device')
+async def disconnect_device():
+    global ble_client, ble_task
+    
+    try:
+        if ble_client:
+            if ble_task:
+                ble_task.cancel()
+            await ble_client.disconnect()
+            ble_client = None
+            ble_task = None
+            socketio.emit('ble_status', {'status': 'disconnected'})
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8001, debug=False)
+    socketio.run(app, host='0.0.0.0', port=8001, debug=False)
