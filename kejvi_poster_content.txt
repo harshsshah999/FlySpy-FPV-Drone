@@ -1,3 +1,10 @@
+About:
+FlySpy is an open-source, AI-powered First-Person View (FPV) drone platform developed as part of the Master’s Project – Intelligent Systems (SS2025) at Frankfurt University of Applied Sciences.
+The goal of the project is to design a cost-effective and modular drone system capable of performing real-time human detection, with practical applications in reconnaissance, academic research, and educational use.
+
+Unlike commercial systems that rely on proprietary and costly components, FlySpy is built using accessible hardware, open-source software, and features a browser-based control dashboard. This approach ensures that the system remains both powerful and easily reproducible, making it ideal for experimentation and further development.
+
+
 Drone Structure and components:
   • Architecture divided into three layers:
 	o Onboard drone hardware
