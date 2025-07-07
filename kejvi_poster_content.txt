@@ -1,0 +1,30 @@
+Drone Structure and components:
+  • Architecture divided into three layers:
+	o Onboard drone hardware
+	o Video streaming setup
+	o Ground station AI system
+  • Drone Frame:
+	o Built on a 5-inch FlyFishRC Volador II VX5 O3 frame
+  • Core Electronics:
+	o Flight Controller: SpeedyBee F405 AIO 40A
+	o FPV Camera: Caddx Ratel Pro (analog)
+	o Video Transmitter (VTX): SpeedyBee TX800
+	o Receiver: ELRS (e.g., Radiomaster RP1)
+	o Remote Controller: Radiomaster BOXER
+
+  • Power System:
+	o Motors: Xing E-Pro motors
+	o Propellers: HQProp T3.5x2x3 tri-blade (3.5 inch)
+	o Battery: 3–6S LiPo
+
+  • Video Streaming Setup:
+	o FPV feed sent to Skyzone Cobra X V4 goggles
+	o Video output routed via RCA → USB capture card → laptop
+	o Decouples flight control from video processing
+	o Ensures low-latency, stable streaming
+
+  • Ground Station (Laptop):
+	o Runs AI human detection pipeline (e.g., MobileNetSSD)
+	o Connects to drone via Bluetooth Low Energy (BLE)
+	o Displays telemetry in real time:
+	o Viewable via interactive browser dashboard
